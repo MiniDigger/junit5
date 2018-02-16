@@ -16,25 +16,25 @@ plugins {
 	id 'org.asciidoctor.convert' version '1.5.7'
 }
 
-apply plugin: 'org.junit.platform.gradle.plugin'
+test {
+	useJUnitPlatform {
+		excludeTags 'exclude'
+	}
+	testLogging {
+		showStandardStreams true
 
-junitPlatform {
-	details 'tree'
-	filters {
-		includeClassNamePattern '.+(Tests|Demo)$'
-		tags {
-			exclude 'exclude'
+		afterTest { TestDescriptor td, TestResult tr ->
+			out << 'TEST: ' + td.className + ' ' + td.name + ' ' + tr.resultType.name() + "\n"
+			TestDescriptor parent = td.parent
+			while (parent != null) {
+				out << ' TEST(PARENT): ' + parent.name + '\n'
+				parent = parent.parent
+			}
+			out << '\n'
 		}
 	}
-	logManager 'org.apache.logging.log4j.jul.LogManager'
+	systemProperty 'java.util.logging.manager', 'org.apache.logging.log4j.jul.LogManager'
 }
-
-/*
-test {
-	scanForTestClasses = false
-	include(['example/DocumentationTestSuite.class'])
-}
-*/
 
 dependencies {
 	asciidoctor('org.jruby:jruby-complete:9.1.15.0')
@@ -45,8 +45,7 @@ dependencies {
 	testImplementation(project(':junit-platform-launcher'))
 	if (gradle.ext.kotlinIsSupported) testImplementation("org.jetbrains.kotlin:kotlin-stdlib:${kotlinVersion}")
 
-	// Include junit-platform-console so that the JUnit Gradle plugin
-	// uses the local version of the ConsoleLauncher.
+	// Needed for `generateConsoleLauncherOptions` task
 	testRuntimeOnly(project(path: ':junit-platform-console', configuration: 'shadow'))
 
 	testRuntimeOnly(project(':junit-vintage-engine'))
